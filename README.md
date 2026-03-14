@@ -1,4 +1,3 @@
-# DeepEmotion-Lab
 
 **Neural Models for Fine-Grained Emotion Detection in Text**
 
