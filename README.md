@@ -2,7 +2,6 @@
 
 **Neural Models for Fine-Grained Emotion Detection in Text**
 
-Master's thesis — Applied Data Science and Analytics (M.Sc.), SRH Hochschule Heidelberg, March 2026.
 
 ## Overview
 
