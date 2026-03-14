@@ -49,6 +49,3 @@ ds = load_dataset("google-research-datasets/go_emotions", "simplified")
 
 Notable per-class results: gratitude (0.92), amusement (0.82), love (0.81), grief (0.63 with only 77 training examples).
 
-## License
-
-This repository contains thesis research code. See individual files for details.
