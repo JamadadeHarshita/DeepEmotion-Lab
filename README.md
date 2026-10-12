@@ -1,51 +1,99 @@
 
-# **Neural Models for Fine-Grained Emotion Detection in Text**
+# Fine-Grained Emotion Detection with Dual-Stream Transformers
 
+Research implementation accompanying the paper **[Fusing General and Domain-Specific Transformers for Fine-Grained Emotion Detection](https://doi.org/10.1049/sfw2/5612036)**, published in *IET Software (2026)*.
 
 ## Overview
 
-A dual-stream hybrid architecture for multi-label emotion classification on the [GoEmotions](https://github.com/google-research/google-research/tree/master/goemotions) dataset (28 emotion categories). The model combines a general-purpose encoder (`roberta-base`) with a social-media-adapted encoder (`cardiffnlp/twitter-roberta-base-emotion`) and integrates affective commonsense knowledge from SenticNet 6 via a gated fusion mechanism.
+This project investigates multi-label emotion classification using general-domain and social-media-adapted transformers, combined with affective commonsense knowledge.
 
-**Macro F1: 0.5407** on GoEmotions test split (vs. ~0.46 BERT baseline).
+The model is evaluated on [GoEmotions](https://github.com/google-research/google-research/tree/master/goemotions), containing 27 emotion categories and one neutral label.
+
+The research focuses on three challenges:
+
+- Recognizing fine-grained emotions in informal text.
+- Handling severe class imbalance and rare emotions.
+- Measuring the contribution of individual model components under consistent evaluation conditions.
 
 ## Architecture
 
-- **Dual-stream encoders** — RoBERTa-base (mean pooling) + Twitter-RoBERTa with DES self-attention ([CLS] pooling)
-- **Learned fusion projection** — concatenation → 1536d → 384d bottleneck
-- **SenticNet integration** — BFS-based label priors (depth=3) + affective residual from Hourglass dimensions
-- **Adaptive label embeddings** — 28 learnable emotion nodes refined via sparse self-attention (top-k annealed 28→5)
-- **Auxiliary Ekman objective** — 7-class coarse supervision with warmup (training only)
+The proposed model combines:
 
-## Requirements
+- **Dual-stream encoders:** RoBERTa-base and Twitter-RoBERTa for general and domain-specific text representations.
+- **Representation fusion:** Learned projection of both encoder outputs into a 384-dimensional representation.
+- **SenticNet integration:** Bounded breadth-first search (depth 3) for knowledge-based label priors, alongside an affective residual.
+- **Adaptive label attention:** Learnable emotion embeddings with sparse self-attention to model label dependencies.
+- **Auxiliary supervision:** Seven-class Ekman-style classification as a training-time regularizer.
+- **Class-weighted learning:** Damped positive class weighting to address long-tail imbalance.
 
-- Python 3.11+
-- PyTorch
-- HuggingFace Transformers & Datasets
-- scikit-learn
-- senticnet
-- tqdm, matplotlib
+## Evaluation
 
-## Quick Start
+Experiments use the official GoEmotions simplified split.
 
-```bash
-pip install torch transformers datasets scikit-learn senticnet tqdm matplotlib
-```
+| Split | Samples |
+|---|---:|
+| Training | 43,410 |
+| Validation | 5,426 |
+| Test | 5,427 |
 
-Training and evaluation are implemented in Jupyter notebooks. Load the GoEmotions simplified split via HuggingFace:
+Evaluation includes:
 
-```python
-from datasets import load_dataset
-ds = load_dataset("google-research-datasets/go_emotions", "simplified")
-```
+- Per-class decision thresholds calibrated on validation data.
+- A shared evaluation procedure across baselines and ablations.
+- Ten-seed replication for principal comparisons.
+- Paired statistical significance tests.
+- Component-wise ablation studies.
+- Inference cost and memory measurements.
+
+**Macro F1** is the primary metric, with micro F1 reported as a secondary measure.
 
 ## Results
 
-| Model | Macro F1 | Micro F1 |
-|---|---|---|
-| BERT-base baseline | 0.5057 | 0.5877 |
-| RoBERTa-base baseline | 0.5157 | 0.5918 |
-| Twitter-RoBERTa single-stream | 0.5277 | 0.6018 |
-| **Proposed dual-stream hybrid** | **0.5407** | **0.6050** |
+### GoEmotions
 
-Notable per-class results: gratitude (0.92), amusement (0.82), love (0.81), grief (0.63 with only 77 training examples).
+Results below use per-class threshold calibration.
 
+| Model | Macro F1 |
+|---|---:|
+| BERT-base | 0.5262 |
+| RoBERTa-base | 0.5195 |
+| Twitter-RoBERTa | 0.5290 |
+| RoBERTa + inverse-frequency weighting | 0.5312 ± 0.0049 |
+| Dual-stream without SenticNet | 0.5300 ± 0.0087 |
+| **Proposed model** | **0.5368 ± 0.0040** |
+
+Results with ± denote mean and standard deviation across 10 seeds. The unweighted single-stream results are individual runs.
+
+The proposed model improved macro F1 by **0.0056** over the strongest calibrated single-stream baseline, at approximately twice the inference cost.
+
+### Key findings
+
+1. **Threshold calibration matters.** Per-class calibration improved macro F1 by approximately 0.095 for the inverse-frequency-weighted RoBERTa baseline, changing the interpretation of its effectiveness.
+
+2. **Class weighting was the strongest intervention.** Removing positive class weighting reduced macro F1 by 0.0574 on average across 10 seeds. The largest improvements occurred in rare categories such as pride, grief, and relief.
+
+3. **Commonsense knowledge provided a modest improvement.** SenticNet integration contributed an average gain of 0.0068 macro F1 over the knowledge-ablated model.
+
+4. **Dual-stream fusion alone was insufficient.** Without knowledge integration, the additional encoder did not meaningfully outperform the strongest calibrated single-stream baseline.
+
+5. **Accuracy comes with computational cost.** The full architecture uses approximately twice the parameters and inference latency of a single-stream RoBERTa model.
+
+### Additional benchmark
+
+The architecture was also trained and evaluated independently on **SemEval-2018 Task 1 E-c**, achieving a **Jaccard index of 0.613**.
+
+This is a second-dataset evaluation, not zero-shot transfer.
+
+
+Training and evaluation are implemented in Jupyter notebooks.
+
+
+## Publication
+
+**Binh Vu, Harshita Jamadade, Swati Chandna, Mehrdad Jalali.**
+
+*Fusing General and Domain-Specific Transformers for Fine-Grained Emotion Detection.*
+
+IET Software, 2026, Article ID 5612036.
+
+**DOI:** https://doi.org/10.1049/sfw2/5612036
